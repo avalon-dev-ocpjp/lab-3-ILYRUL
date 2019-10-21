@@ -5,12 +5,14 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.Objects;
 
 /**
  * Класс описывает представление о коде товара и отражает соответствующую 
  * таблицу базы данных Sample (таблица PRODUCT_CODE).
  * 
- * @author Daniel Alpatov <danial.alpatov@gmail.com>
+ * 
  */
 public class ProductCode {
     /**
@@ -43,11 +45,14 @@ public class ProductCode {
      * @param set {@link ResultSet}, полученный в результате запроса, 
      * содержащего все поля таблицы PRODUCT_CODE базы данных Sample.
      */
-    private ProductCode(ResultSet set) {
+    private ProductCode(ResultSet set) throws SQLException{
         /*
          * TODO #05 реализуйте конструктор класса ProductCode
          */
-        throw new UnsupportedOperationException("Not implemented yet!");        
+            code= set.getString("PROD_CODE");
+            discountCode= set.getString("DISCOUNT_CODE").toCharArray()[0];
+            description=set.getString("DESCRIPTION");
+            
     }
     /**
      * Возвращает код товара
@@ -108,7 +113,7 @@ public class ProductCode {
         /*
          * TODO #06 Реализуйте метод hashCode
          */
-        throw new UnsupportedOperationException("Not implemented yet!");
+       return Objects.hash(code, discountCode, description);
     }
     /**
      * Сравнивает некоторый произвольный объект с текущим объектом типа 
@@ -123,7 +128,10 @@ public class ProductCode {
         /*
          * TODO #07 Реализуйте метод equals
          */
-        throw new UnsupportedOperationException("Not implemented yet!");
+        if (this == obj) return true;
+        if (obj == null || !(obj instanceof ProductCode)) return false;
+        ProductCode other = (ProductCode) obj;
+        return this != null && code.equals(other.code) && discountCode == other.discountCode && description.equalsIgnoreCase(other.description);
     }
     /**
      * Возвращает строковое представление кода товара.
@@ -135,7 +143,8 @@ public class ProductCode {
         /*
          * TODO #08 Реализуйте метод toString
          */
-        throw new UnsupportedOperationException("Not implemented yet!");
+         String result ="CODE = " + code + " " + "DISCOUNT_CODE = " + discountCode + " " + "DESCRIPTION = " + description; 
+        return result;
     }
     /**
      * Возвращает запрос на выбор всех записей из таблицы PRODUCT_CODE 
@@ -143,12 +152,14 @@ public class ProductCode {
      * 
      * @param connection действительное соединение с базой данных
      * @return Запрос в виде объекта класса {@link PreparedStatement}
+     * @throws java.sql.SQLException
      */
     public static PreparedStatement getSelectQuery(Connection connection) throws SQLException {
         /*
          * TODO #09 Реализуйте метод getSelectQuery
          */
-        throw new UnsupportedOperationException("Not implemented yet!");
+        PreparedStatement statement = connection.prepareStatement("SELECT * FROM PRODUCT_CODE");
+        return statement;
     }
     /**
      * Возвращает запрос на добавление записи в таблицу PRODUCT_CODE 
@@ -161,7 +172,11 @@ public class ProductCode {
         /*
          * TODO #10 Реализуйте метод getInsertQuery
          */
-        throw new UnsupportedOperationException("Not implemented yet!");
+        String insSql = "INSERT INTO PRODUCT_CODE"
+                + "(PROD_CODE, DISCOUNT_CODE, DESCRIPTION) VALUES"
+                + "(?,?,?)";
+        PreparedStatement statement = connection.prepareStatement(insSql);
+        return statement;
     }
     /**
      * Возвращает запрос на обновление значений записи в таблице PRODUCT_CODE 
@@ -174,7 +189,9 @@ public class ProductCode {
         /*
          * TODO #11 Реализуйте метод getUpdateQuery
          */
-        throw new UnsupportedOperationException("Not implemented yet!");
+         String updSql = "UPDATE PRODUCT_CODE SET DISCOUNT_CODE = ?, DESCRIPTION = ? where PROD_CODE = ?";
+        PreparedStatement statement = connection.prepareStatement(updSql);
+        return statement;
     }
     /**
      * Преобразует {@link ResultSet} в коллекцию объектов типа {@link ProductCode}
@@ -188,7 +205,13 @@ public class ProductCode {
         /*
          * TODO #12 Реализуйте метод convert
          */
-        throw new UnsupportedOperationException("Not implemented yet!");
+        Collection<ProductCode> temp = new HashSet<>();
+        
+        while (set.next()) {
+            temp.add(new ProductCode(set));
+             }
+        
+        return temp;
     }
     /**
      * Сохраняет текущий объект в базе данных. 
@@ -203,7 +226,21 @@ public class ProductCode {
         /*
          * TODO #13 Реализуйте метод convert
          */
-        throw new UnsupportedOperationException("Not implemented yet!");
+        if (!this.isIdExist(connection)){
+            try (PreparedStatement statement = getInsertQuery(connection)){
+            statement.setString(1, code);
+            statement.setString(2, String.valueOf(discountCode));
+            statement.setString(3, description);
+            statement.executeUpdate();
+        } 
+        } else {
+            try (PreparedStatement statement = getUpdateQuery(connection)) {
+            statement.setString(1, String.valueOf(discountCode));
+            statement.setString(2, description);
+            statement.setString(3, code);
+            statement.executeUpdate();
+            } 
+        }
     }
     /**
      * Возвращает все записи таблицы PRODUCT_CODE в виде коллекции объектов
@@ -219,5 +256,24 @@ public class ProductCode {
                 return convert(result);
             }
         }
+    }
+    public boolean isIdExist(Connection connection) throws SQLException{
+        boolean isExist = false;
+        try (PreparedStatement statement = connection.prepareStatement("SELECT * FROM PRODUCT_CODE WHERE PROD_CODE = ?")) {
+        statement.setString(1, code);
+        try (ResultSet result = statement.executeQuery()) {
+            try {
+                String tmp = null;
+                
+                while (result.next()){
+                tmp = result.getString("PROD_CODE");
+                }
+                if (tmp.equals(code)) isExist = true;
+            } catch (NullPointerException e) {
+                isExist = false;
+            }
+        }
+        }
+        return isExist;
     }
 }
